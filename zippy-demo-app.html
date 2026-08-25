@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zippy demo — multi-service app prototype</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<style>
+  :root {
+    --surface-0: #F3F2EE;
+    --surface-1: #FFFFFF;
+    --surface-2: #F7F6F2;
+    --text-primary: #1C1B19;
+    --text-secondary: #6B6A65;
+    --text-muted: #9B9A94;
+    --border: #E4E2DC;
+    --border-strong: #D3D1C9;
+    --bg-success: #EAF3DE;
+    --text-success: #3B6D11;
+    --bg-danger: #FCEBEB;
+    --text-danger: #A32D2D;
+    --bg-accent: #E6F1FB;
+    --text-accent: #185FA5;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2rem 1rem;
+    background: var(--surface-0);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    color: var(--text-primary);
+    display: flex;
+    justify-content: center;
+  }
+  input, button {
+    font-family: inherit;
+    font-size: 14px;
+    border-radius: 8px;
+  }
+  input {
+    height: 36px;
+    padding: 0 10px;
+    border: 0.5px solid var(--border-strong);
+    background: var(--surface-1);
+    color: var(--text-primary);
+  }
+  input:focus { outline: 2px solid var(--text-accent); outline-offset: 1px; }
+  button {
+    border: 0.5px solid var(--border-strong);
+    background: var(--surface-1);
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  button:hover { background: var(--surface-2); }
+  button:active { transform: scale(0.98); }
+  .app {
+    max-width: 380px;
+    width: 100%;
+    background: var(--surface-1);
+    border-radius: 16px;
+    padding: 1.25rem;
+    border: 0.5px solid var(--border);
+  }
+  .header { display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; }
+  .logo { width: 32px; height: 32px; border-radius: 8px; background: #FFD23F; display: flex; align-items: center; justify-content: center; }
+  .badge { margin-left: auto; font-size: 11px; color: var(--text-muted); background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 6px; padding: 2px 8px; }
+  .svc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .svc-tile { text-align: left; padding: 14px 12px; border: 0.5px solid var(--border-strong); }
+  .svc-tile .ti { font-size: 22px; }
+  .svc-tile .label { font-size: 13px; font-weight: 500; margin-top: 8px; }
+  .svc-tile .sub { font-size: 11px; color: var(--text-muted); }
+  .route { position: relative; }
+  .route::before {
+    content: "";
+    position: absolute; left: 11px; top: 20px; bottom: 20px; width: 2px;
+    background: repeating-linear-gradient(to bottom, var(--border-strong) 0 4px, transparent 4px 8px);
+  }
+  .route-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .route-row:last-child { margin-bottom: 0; }
+  .dot { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 1; }
+  .dot.pickup { background: var(--bg-success); }
+  .dot.drop { background: var(--bg-danger); }
+  .route-row input { flex: 1; }
+  .error-text { display: none; font-size: 13px; color: var(--text-danger); margin: 8px 0 0; }
+  .fare-card { background: var(--surface-2); border-radius: 12px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; margin: 1rem 0; }
+  .fare-label { font-size: 12px; color: var(--text-secondary); }
+  .fare-value { font-size: 22px; font-weight: 500; }
+  .fare-meta { text-align: right; font-size: 12px; color: var(--text-secondary); }
+  .primary-btn { width: 100%; background: #FFD23F; border: none; color: #3A2A00; font-weight: 500; padding: 12px; font-size: 14px; }
+  .back-btn { border: none; background: none; padding: 0; margin-bottom: 10px; font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; }
+  .spinner-wrap { text-align: center; padding: 1.5rem 0; }
+  .spinner { width: 48px; height: 48px; border-radius: 50%; background: var(--surface-2); display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .matching-label { font-size: 14px; color: var(--text-secondary); }
+  .driver-card { background: var(--surface-2); border-radius: 12px; padding: 14px; display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--bg-accent); display: flex; align-items: center; justify-content: center; font-weight: 500; font-size: 13px; color: var(--text-accent); }
+  .driver-name { font-size: 14px; font-weight: 500; }
+  .driver-meta { font-size: 12px; color: var(--text-secondary); }
+  .driver-eta { text-align: right; }
+  .driver-eta .mins { font-size: 13px; font-weight: 500; }
+  .driver-eta .away { font-size: 11px; color: var(--text-muted); }
+  .disclaimer { font-size: 12px; color: var(--text-muted); text-align: center; margin: 0 0 12px; }
+  .secondary-btn { width: 100%; padding: 10px; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <div class="logo"><i class="ti ti-bolt" style="font-size:18px;color:#3A2A00;" aria-hidden="true"></i></div>
+    <span style="font-weight:500;font-size:16px;">Zippy demo</span>
+    <span class="badge">Prototype</span>
+  </div>
+
+  <div id="screen-home">
+    <p style="font-size:13px;color:var(--text-secondary);margin:0 0 12px;">What do you need today?</p>
+    <div class="svc-grid">
+      <button class="svc-tile" data-svc="bike" data-fare="1.0" data-eta="14" data-label="Bike">
+        <i class="ti ti-motorbike" aria-hidden="true"></i>
+        <div class="label">Bike</div>
+        <div class="sub">Beat the traffic</div>
+      </button>
+      <button class="svc-tile" data-svc="auto" data-fare="1.6" data-eta="12" data-label="Auto">
+        <i class="ti ti-car" aria-hidden="true"></i>
+        <div class="label">Auto</div>
+        <div class="sub">Room for two</div>
+      </button>
+      <button class="svc-tile" data-svc="cab" data-fare="2.4" data-eta="16" data-label="Cab">
+        <i class="ti ti-car-suv" aria-hidden="true"></i>
+        <div class="label">Cab</div>
+        <div class="sub">AC, door to door</div>
+      </button>
+      <button class="svc-tile" data-svc="parcel" data-fare="1.2" data-eta="20" data-label="Parcel">
+        <i class="ti ti-package" aria-hidden="true"></i>
+        <div class="label">Parcel</div>
+        <div class="sub">Send something</div>
+      </button>
+      <button class="svc-tile" data-svc="food" data-fare="1.1" data-eta="25" data-label="Food">
+        <i class="ti ti-soup" aria-hidden="true"></i>
+        <div class="label">Food</div>
+        <div class="sub">Order delivery</div>
+      </button>
+      <button class="svc-tile" data-svc="courier" data-fare="1.8" data-eta="30" data-label="Courier">
+        <i class="ti ti-truck-delivery" aria-hidden="true"></i>
+        <div class="label">Courier</div>
+        <div class="sub">Same-day drop</div>
+      </button>
+    </div>
+  </div>
+
+  <div id="screen-form" style="display:none;">
+    <button id="back-to-home" class="back-btn">
+      <i class="ti ti-arrow-left" aria-hidden="true"></i> <span id="svc-title">Bike</span>
+    </button>
+
+    <div class="route">
+      <div class="route-row">
+        <div class="dot pickup"><i class="ti ti-circle-filled" style="font-size:8px;color:var(--text-success);" aria-hidden="true"></i></div>
+        <input id="pickup" type="text" placeholder="Pickup location" value="Bandra Station, Mumbai">
+      </div>
+      <div class="route-row">
+        <div class="dot drop"><i class="ti ti-square-filled" style="font-size:8px;color:var(--text-danger);" aria-hidden="true"></i></div>
+        <input id="drop" type="text" placeholder="Drop location" value="Lower Parel, Mumbai">
+      </div>
+    </div>
+    <p id="input-error" class="error-text">Enter both a pickup and a drop location first.</p>
+
+    <div class="fare-card">
+      <div>
+        <div class="fare-label">Estimated fare</div>
+        <div id="fare-out" class="fare-value">₹58</div>
+      </div>
+      <div class="fare-meta">
+        <div id="dist-out">4.2 km</div>
+        <div id="eta-out">~14 min</div>
+      </div>
+    </div>
+
+    <button id="find-btn" class="primary-btn">Find a match</button>
+  </div>
+
+  <div id="screen-matching" style="display:none;" class="spinner-wrap">
+    <div class="spinner"><i class="ti ti-loader-2" style="font-size:22px;color:var(--text-secondary);" aria-hidden="true"></i></div>
+    <div id="matching-label" class="matching-label">Finding a nearby captain</div>
+  </div>
+
+  <div id="screen-matched" style="display:none;">
+    <div class="driver-card">
+      <div class="avatar">RK</div>
+      <div style="flex:1;">
+        <div class="driver-name">Ravi K.</div>
+        <div class="driver-meta">MH 04 EF 3321 · <i class="ti ti-star" style="font-size:11px;vertical-align:-1px;" aria-hidden="true"></i> 4.8</div>
+      </div>
+      <div class="driver-eta">
+        <div class="mins">3 min</div>
+        <div class="away">away</div>
+      </div>
+    </div>
+    <p class="disclaimer">This is a simulated match for demo purposes only.</p>
+    <button id="reset-btn" class="secondary-btn">Back to services</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var baseDist = 4.2, baseFare = 58;
+  var currentFareMult = 1.0, currentEtaBase = 14;
+  var matchLabels = {
+    bike: 'Finding a nearby captain',
+    auto: 'Finding a nearby captain',
+    cab: 'Finding a nearby driver',
+    parcel: 'Finding a nearby rider',
+    food: 'Finding a delivery partner',
+    courier: 'Finding a nearby rider'
+  };
+
+  function updateEstimate(){
+    document.getElementById('fare-out').textContent = '₹' + Math.round(baseFare * currentFareMult);
+    document.getElementById('dist-out').textContent = baseDist + ' km';
+    document.getElementById('eta-out').textContent = '~' + currentEtaBase + ' min';
+  }
+
+  function showScreen(id){
+    ['screen-home','screen-form','screen-matching','screen-matched'].forEach(function(s){
+      document.getElementById(s).style.display = (s === id) ? 'block' : 'none';
+    });
+  }
+
+  document.querySelectorAll('.svc-tile').forEach(function(tile){
+    tile.addEventListener('click', function(){
+      currentFareMult = parseFloat(tile.getAttribute('data-fare'));
+      currentEtaBase = parseInt(tile.getAttribute('data-eta'), 10);
+      document.getElementById('svc-title').textContent = tile.getAttribute('data-label');
+      document.getElementById('matching-label').textContent = matchLabels[tile.getAttribute('data-svc')];
+      updateEstimate();
+      showScreen('screen-form');
+    });
+  });
+
+  document.getElementById('back-to-home').addEventListener('click', function(){
+    showScreen('screen-home');
+  });
+
+  document.getElementById('find-btn').addEventListener('click', function(){
+    var pickup = document.getElementById('pickup').value.trim();
+    var drop = document.getElementById('drop').value.trim();
+    var err = document.getElementById('input-error');
+    if(!pickup || !drop){
+      err.style.display = 'block';
+      return;
+    }
+    err.style.display = 'none';
+    showScreen('screen-matching');
+    setTimeout(function(){
+      showScreen('screen-matched');
+    }, 1800);
+  });
+
+  document.getElementById('reset-btn').addEventListener('click', function(){
+    showScreen('screen-home');
+  });
+})();
+</script>
+
+</body>
+</html>
